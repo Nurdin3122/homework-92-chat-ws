@@ -5,7 +5,7 @@ import config from './config';
 import mongoose from 'mongoose';
 import usersRouter from './routers/usersRouter';
 
-const app: Application = express() as any;
+const app: Application = express();
 expressWs(app);
 
 const port = 8000;

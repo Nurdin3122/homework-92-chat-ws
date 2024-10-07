@@ -44,4 +44,25 @@ usersRouter.post('/sessions', async (req: Request, res: Response, next: NextFunc
     }
 });
 
+usersRouter.delete('/sessions', async (req, res, next) => {
+    try {
+        const header = req.get('Authorization');
+        if (!header || !header.startsWith('Bearer ')) {
+            return res.status(401).send({error: 'Token not provided!'});
+        }
+        const token = header.split(' ')[1];
+        const success = {message: 'Success'};
+        if (!token) return res.send(success);
+        const user = await User.findOne({token});
+        if (!user) return res.send(success);
+
+        user.token = "";
+        user.save();
+
+        return res.send(success);
+    } catch (e) {
+        return next(e);
+    }
+});
+
 export default usersRouter;
