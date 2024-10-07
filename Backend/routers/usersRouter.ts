@@ -37,7 +37,7 @@ usersRouter.post('/sessions', async (req: Request, res: Response, next: NextFunc
         }
 
         user.token = randomUUID();
-        await user.save({ validateModifiedOnly: true });
+        await user.save();
         return res.send(user);
     } catch (error) {
         return next(error);

@@ -3,3 +3,8 @@ export interface UserFields {
     password: string;
     token: string;
 }
+
+export interface incomingMessage {
+    type:string;
+    payload:string;
+}
