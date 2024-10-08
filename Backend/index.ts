@@ -7,6 +7,8 @@ import usersRouter from './routers/usersRouter';
 import {incomingMessage} from "./types.Db";
 import { WebSocket } from 'ws';
 import User from "./models/Users";
+import Messages from "./models/Messages";
+import dayjs from 'dayjs';
 
 
 const app: Application = express();
@@ -21,12 +23,26 @@ const chatRouter = express.Router();
 const connectedClients:{ ws: WebSocket, username: string }[]= [];
 let userName = "Anonymous";
 
-chatRouter.ws('/chat', (ws) => {
-
+chatRouter.ws('/chat', async (ws) => {
     console.log('client connected');
+    connectedClients.push({ ws, username: '' });
+    const lastMessages = await Messages.find().sort({ createdAt: -1 }).limit(30).exec();
+
+    const formattedMessages = lastMessages.map(message => ({
+        username: message.username,
+        text: message.text,
+        createdAt: dayjs(message.createdAt).format('HH:mm')
+    }));
+
+    ws.send(JSON.stringify({
+        type: 'LAST_MESSAGES',
+        payload: formattedMessages,
+    }));
+
 
     ws.on("message",async (msg) => {
         try {
+
             const decodedMessage = JSON.parse(msg.toString()) as incomingMessage;
 
             if (decodedMessage.type === 'LOGIN') {
@@ -40,7 +56,10 @@ chatRouter.ws('/chat', (ws) => {
 
                 if (user) {
                     userName = user.username;
-                    connectedClients.push({ ws, username: userName });
+                    const clientIndex = connectedClients.findIndex(client => client.ws === ws);
+                    if (clientIndex !== -1) {
+                        connectedClients[clientIndex].username = userName;
+                    }
                 } else {
                     ws.send(JSON.stringify({ type: 'ERROR', payload: 'Invalid token' }));
                     ws.close();
@@ -49,12 +68,21 @@ chatRouter.ws('/chat', (ws) => {
             }
 
             if (decodedMessage.type === "SET_MESSAGE") {
+                const newMessage = new Messages({
+                    username: userName,
+                    text: decodedMessage.payload,
+                    createdAt: new Date(),
+                });
+                await newMessage.save();
+                const formattedTime = dayjs(newMessage.createdAt).format('HH:mm');
+
                 connectedClients.forEach(client => {
                     client.ws.send(JSON.stringify({
                         type:"NEW_MESSAGE",
                         payload: {
                             username: userName,
-                            text:decodedMessage.payload
+                            text:decodedMessage.payload,
+                            createdAt:formattedTime,
                         }
                     }));
                 })
@@ -66,6 +94,11 @@ chatRouter.ws('/chat', (ws) => {
 
     ws.on('close', () => {
         console.log('client disconnected');
+        const index = connectedClients.findIndex(client => client.ws === ws);
+
+        if (index !== -1) {
+            connectedClients.splice(index, 1);
+        }
     });
 });
 

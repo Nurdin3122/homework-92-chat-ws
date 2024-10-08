@@ -12,6 +12,7 @@ export interface User {
 export interface ChatMessage {
     username: string;
     text: string;
+    createdAt:string;
 }
 
 export interface WsMessage {

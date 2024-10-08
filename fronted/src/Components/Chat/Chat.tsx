@@ -27,7 +27,10 @@ const Chat = () => {
                 const decodedMessage = JSON.parse(event.data) as WsMessage;
 
                 if (decodedMessage.type === 'NEW_MESSAGE') {
-                    setMessages((messages) => [...messages, decodedMessage.payload]);
+                    setMessages((prevMessages) => [...prevMessages, decodedMessage.payload]);
+                }
+                if (decodedMessage.type === 'LAST_MESSAGES') {
+                    setMessages(decodedMessage.payload);
                 }
                 if (decodedMessage.type === "ERROR") {
                     window.alert(decodedMessage.payload);
@@ -51,6 +54,10 @@ const Chat = () => {
 
     const sendMessage = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) {
+            window.alert("Вы должны быть авторизованы для отправки сообщений");
+            return;
+        }
         if (!ws.current) return;
         if ("send" in ws.current) {
             ws.current.send(JSON.stringify({
@@ -65,6 +72,7 @@ const Chat = () => {
     };
 
 
+
     return (
         <div className='container-fluid mt-5'>
             <div className="d-flex justify-content-center" style={{height: "580px"}}>
@@ -72,11 +80,19 @@ const Chat = () => {
                 <div className="me-5">
                     <h4>Online</h4>
                     <div className="border" style={{padding: "18px", height: "500px"}}>
-                        {messages.map((message, idx) => (
-                            <div key={idx}>
-                                <p style={{borderBottom: "1px solid grey", paddingBottom: "2px"}}>{message.username}</p>
+                            <div>
+                                {
+                                    user ? (
+                                        <p style={{
+                                            borderBottom: "1px solid grey",
+                                            paddingBottom: "2px"
+                                        }}>{user.username}</p>
+                                    ) : (
+                                        <p>there is not users</p>
+                                    )
+                                }
+
                             </div>
-                        ))}
 
                     </div>
                 </div>
@@ -85,12 +101,12 @@ const Chat = () => {
                 <div className="d-flex  flex-column">
                     <h4>Chat</h4>
 
-                    <div className="d-flex border ps-3" style={{height: "500px", width: "400px"}}>
-                        <div className="d-flex flex-column justify-content-end mb-2">
-                            {messages.map((message, idx) => (
-                                <div key={idx}>
+                    <div className="d-flex border ps-3" style={{height: "500px", width: "400px", overflowY: "auto"}}>
+                        <div className="d-flex flex-column justify-content-end">
+                            {messages.map((message, index) => (
+                                <div key={index}>
                                     <p className="m-0"><b>{message.username}: </b>
-                                        {message.text}</p>
+                                        {message.text} <span style={{fontSize: "10px"}}>{message.createdAt}</span></p>
                                 </div>
                             ))}
                         </div>
@@ -103,6 +119,7 @@ const Chat = () => {
                                 name="username"
                                 value={messageText}
                                 onChange={changeMessage}
+                                required
                             />
                             <button type="submit" className='btn btn-dark'>send</button>
                         </form>
