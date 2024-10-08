@@ -8,3 +8,13 @@ export interface User {
     username:string;
     token: string;
 }
+
+export interface ChatMessage {
+    username: string;
+    text: string;
+}
+
+export interface WsMessage {
+    type: string;
+    payload: ChatMessage;
+}
